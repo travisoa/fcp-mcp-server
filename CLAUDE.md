@@ -2,15 +2,15 @@
 
 ## What This Is
 
-MCP server that reads/writes Final Cut Pro XML (FCPXML) files. 13 grouped tools (`inspect`, `diagnose`, `edit`, `mark`, `generate`, `transcript`, `deliver`, `preview`, `watch`, `index`, `scenes`, `organize`, `find`) are advertised by default, dispatching into 92 underlying operations for timeline analysis, batch editing, QC, generation, multi-track support, media relink, NLE export, transcript-based editing (local Whisper, or ElevenLabs Scribe opt-in for speakers), shot-boundary detection, bulk library organization with a journal-backed `undo`, tiered shot search (transcript → metadata → offline MLX captions), a review gate on `deliver`, and LIVE FCP control (push_to_fcp / list_fcp_libraries via Apple events). Set `FCP_MCP_LEGACY_TOOLS=1` to also advertise the 67 flat tool schemas (80 advertised in total; the 25 operations born as group actions — preview, watch, index, scenes, organize, find, import_edl_json — have no flat schema). Reads FCPXML 1.8–1.14 (incl. `.fcpxmld` bundles with sidecar preservation), writes 1.13 by default. Dual-mode (XML + Live) direction: `docs/CAPABILITY-AUDIT-2026-06.md`.
+MCP server that reads/writes Final Cut Pro XML (FCPXML) files. 13 grouped tools (`inspect`, `diagnose`, `edit`, `mark`, `generate`, `transcript`, `deliver`, `preview`, `watch`, `index`, `scenes`, `organize`, `find`) are advertised by default, dispatching into 95 underlying operations for timeline analysis, batch editing, QC, generation, multi-track support, media relink, NLE export, transcript-based editing (local Whisper, or ElevenLabs Scribe opt-in for speakers), shot-boundary detection, bulk library organization with a journal-backed `undo`, tiered shot search (transcript → metadata → offline MLX captions), a review gate on `deliver`, and LIVE FCP control (push_to_fcp / list_fcp_libraries via Apple events). Set `FCP_MCP_LEGACY_TOOLS=1` to also advertise the 70 flat tool schemas (83 advertised in total; the 25 operations born as group actions — preview, watch, index, scenes, organize, find, import_edl_json — have no flat schema). Reads FCPXML 1.8–1.14 (incl. `.fcpxmld` bundles with sidecar preservation), writes 1.13 by default. Dual-mode (XML + Live) direction: `docs/CAPABILITY-AUDIT-2026-06.md`.
 
 ## Architecture
 
 ```
-server.py           — MCP server entry point. 67 flat tool definitions, handlers, resources, prompts.
+server.py           — MCP server entry point. 70 flat tool definitions, handlers, resources, prompts.
                       Dispatch dict pattern: TOOL_HANDLERS maps tool names → async handler functions.
 TOOL_GROUPS         — 13 grouped verbs advertised by default. Dispatch into
-                      TOOL_HANDLERS, which holds all 92 handlers. New groups are
+                      TOOL_HANDLERS, which holds all 95 handlers. New groups are
                       defined in tools/ and merged in by _merge_extra_tools().
                       Hiding a tool from list_tools does NOT stop it dispatching.
 fcpxml/journal.py   — Append-only operation ledger under ~/.fcp-mcp/journal/
@@ -98,6 +98,10 @@ tools/              — New tool groups register here instead of growing server.
                       passing while guarding nothing.
 skill/              — the final-cut-pro Claude Code skill wrapping this server
 
+fcpxml/retime.py    — Exact positive speed maps, frame-baked ramps and guarded ripple/reset.
+                      Intrinsic animation uses the adjusted local clock, not mapped
+                      media time; see docs/retiming.md before changing timing.
+tools/retime.py     — Speed schemas/adapters using the keyframe staged publisher.
 fcpxml/keyframes.py — Intrinsic animation edits on the original XML; unique clip paths,
                       rational clip-relative time, native FCP interpolation. See
                       docs/keyframes.md before changing its parameter/time contract.
